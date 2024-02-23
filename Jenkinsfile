@@ -2,7 +2,7 @@ pipeline{
     agent any
     tools{
         jdk 'JDK'
-        nodejs 'NodeJs'
+        nodejs 'NODEJS'
     }
     environment {
         SCANNER_HOME=  tool 'Sonar'
