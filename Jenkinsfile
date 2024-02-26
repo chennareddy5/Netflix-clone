@@ -2,13 +2,13 @@ pipeline {
     agent any
     tools {
         jdk 'JDK'
-        nodejs 'NODEJS'
+        nodejs 'NodeJs'
     }
     environment {
         SCANNER_HOME = tool 'Sonar'
     }
     stages {
-        stage('clean workspace') {
+        stage('Clean Workspace') {
             steps {
                 cleanWs()
             }
@@ -18,20 +18,30 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/chennareddy5/Netflix-clone.git'
             }
         }
-        stage("Sonarqube Analysis ") {
-            steps {
-                withSonarQubeEnv('sonar') {
-                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Netflix \
-                    -Dsonar.projectKey=Netflix '''
-                }
-            }
-        }
-        stage("SonarQube Quality Gate Check") {
+        stage("SonarQube Analysis") {
             steps {
                 script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+                    withSonarQubeEnv('sonar-server') {
+                        sh "$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Netflix -Dsonar.projectKey=Netflix"
+                    }
                 }
             }
         }
-    }  
+        stage('Install Dependencies') {
+            steps {
+                sh "npm install"
+            }
+        }
+        stage('OWASP Dependency-Check') {
+            steps {
+                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+        stage('Trivy FS Scan') {
+            steps {
+                sh "trivy fs . > trivyfs.txt"
+            }
+        }
+    }
 }
